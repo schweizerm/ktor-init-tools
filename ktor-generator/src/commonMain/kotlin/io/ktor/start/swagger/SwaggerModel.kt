@@ -162,7 +162,7 @@ data class SwaggerModel(
     data class NamedObject(val path: String, val kind: InfoGenType<ObjType>) : MapLikeGenType {
     //data class NamedObject(val path: String, val def: TypeDef?) : MapLikeGenType {
         override val ktype: KClass<*> = Any::class
-        val name = path.substringAfterLast('/')
+        val name = path.substringAfterLast('/').substringAfterLast(".")
 
         override fun toString(): String = name
         override val fields = kind.type.fields

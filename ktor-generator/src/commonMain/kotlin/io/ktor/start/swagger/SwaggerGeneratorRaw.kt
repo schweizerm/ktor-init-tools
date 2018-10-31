@@ -124,8 +124,37 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
             }
 
             SEPARATOR {
+                +"typealias Date = String"
+            }
+
+            SEPARATOR {
                 doc(title = model.info.title + " Client", description = model.info.description)
-                +"open class ${model.info.classNameClient}(val endpoint: String, val client: HttpClient = HttpClient())" {
+                +"open class ${model.info.classNameClient}(val endpoint: String)" {
+
+                    +"val client: HttpClient"
+                    +"init" {
+                        +"this.client = actualHttpClient.config " {
+                            +"install(JsonFeature)" {
+                                +"serializer = KotlinSerializer().apply" {
+                                    val allModels = model.routes.values.map { it.methodsList }.flatten().distinctBy { it.responseType.toKotlinType() }
+                                    allModels.forEach {
+                                        +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.serializer())"
+                                    }
+                                    +"setMapper(Date::class, object : KSerializer<Date>" {
+                                            +"override val descriptor: SerialDescriptor = StringDescriptor"
+                                            +"override fun serialize(output: Encoder, obj: Date) = output.encodeString(obj)"
+                                            +"override fun deserialize(input: Decoder): Date = input.decodeString()"
+                                        }
+                                    +")"
+                                        /*for (method in route.methodsList) {
+                                            val responseType = method.responseType.toKotlinType()
+                                        }
+                                    }*/
+                                }
+                            }
+                        }
+                    }
+
                     for (route in model.routes.values) {
                         for (method in route.methodsList) {
                             val responseType = method.responseType.toKotlinType()
@@ -136,39 +165,46 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                     params = method.parameters.associate { it.name to it.description },
                                     retval = method.defaultResponse.description
                                 )
-                                +"suspend fun ${method.methodName}("
+                                +"fun ${method.methodName}("
                                 indent {
                                     for ((pinfo, param) in method.parameters.metaIter) {
                                         val qpname = param.name.quote()
-                                        val default = if (param.required) "" else " = " + indentStringHere {
+                                        val default = if (param.required) "" else "? = " + indentStringHere {
                                             toKotlinDefault(param.schema, param.default, typed = true)
                                         }
-                                        +"${param.name}: ${param.schema.toKotlinType()}$default${pinfo.optComma} // ${param.inside}"
+                                        +"${param.name}: ${param.schema.toKotlinType()}$default, // ${param.inside}"
                                     }
+                                    +"callback: (result: $responseType?, error: Throwable?) -> Unit"
                                 }
-                                +"): $responseType" {
+                                +") " {
                                     val replacedPath = method.path.replace(Regex("\\{(\\w+)\\}")) {
                                         "\$" + it.groupValues[1]
                                     }
-
-                                    +"return client.${method.method}<$responseType>(\"\$endpoint$replacedPath\")" {
-                                        if (method.parametersQuery.isNotEmpty()) {
-                                            +"this.url" {
-                                                +"this.parameters.apply" {
-                                                    for (param in method.parametersQuery) {
-                                                        +"this.append(${param.name.quote()}, \"\$${param.name}\")"
+                                    +"launchAndCatch(" {
+                                        +"callback(null, it)"
+                                    }
+                                    +"," {
+                                        +"val result = client.${method.method}<$responseType>(\"\$endpoint$replacedPath\")" {
+                                            if (method.parametersQuery.isNotEmpty()) {
+                                                +"this.url" {
+                                                    +"this.parameters.apply" {
+                                                        for (param in method.parametersQuery) {
+                                                            +"${param.name}?.let { this.append(${param.name.quote()}, \"\$it\") }"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if (method.parametersBody.isNotEmpty()) {
+                                                +"this.body = mutableMapOf<String, Any?>().apply" {
+                                                    for (param in method.parametersBody) {
+                                                        +"this[${param.name.quote()}] = ${param.name}"
                                                     }
                                                 }
                                             }
                                         }
-                                        if (method.parametersBody.isNotEmpty()) {
-                                            +"this.body = mutableMapOf<String, Any?>().apply" {
-                                                for (param in method.parametersBody) {
-                                                    +"this[${param.name.quote()}] = ${param.name}"
-                                                }
-                                            }
-                                        }
+                                        +"callback(result, null)"
                                     }
+                                    + ")"
                                 }
                             }
                         }
