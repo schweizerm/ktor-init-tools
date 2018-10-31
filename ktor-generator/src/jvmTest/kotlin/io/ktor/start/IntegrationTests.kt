@@ -104,7 +104,7 @@ class IntegrationTests {
         val testProjectRoot = testProjectDir.root
         //val testProjectRoot = File("/tmp/swagger-gen")
 
-        val model = SwaggerModel.parseJson(getResourceString("/swagger.json")!!)
+        val model = SwaggerModel.parseJson(getResourceString("/swagger.json"))
         val info = info
         val features = listOf(SwaggerGenerator(model, SwaggerGenerator.Kind.INTERFACE))
 
@@ -150,7 +150,7 @@ class IntegrationTests {
         val testProjectRoot = testProjectDir.root
         //val testProjectRoot = File("/tmp/swagger-gen")
 
-        val model = SwaggerModel.parseJson(getResourceString("/swagger.json")!!)
+        val model = SwaggerModel.parseJson(getResourceString("/swagger.json"))
         val info = info.copy(projectType = ProjectType.GradleKotlinDsl, ktorVersion = Versions.LAST_EAP)
         val features = ALL_FEATURES + SwaggerGenerator(model, SwaggerGenerator.Kind.INTERFACE)
 
@@ -160,11 +160,51 @@ class IntegrationTests {
             val result = org.gradle.testkit.runner.GradleRunner.create()
                 .withProjectDir(testProjectRoot)
                 //.withArguments("check") // Test should fail, but the code should be valid
-                .withGradleVersion(GRADLE_VERSION)
+                .withGradleVersion(GRADLE_VERSION_DSL)
                 .withArguments(
                     //"-i",
                     "compileTestKotlin"
                 )
+                .forwardOutput()
+                .build()
+        }
+    }
+
+    @Test
+    fun testResourceAvailabilityKotlinDsl() = testResource(projectType = ProjectType.GradleKotlinDsl)
+
+    @Test
+    fun testResourceAvailabilityGroovy() = testResource(projectType = ProjectType.Gradle)
+
+    private fun testResource(projectType: ProjectType) {
+        val testProjectRoot = testProjectDir.root
+        //val testProjectRoot = File("/tmp/swagger-gen-$projectType")
+
+        val info = info.copy(projectType = projectType, ktorVersion = Versions.LAST_EAP)
+        val features = listOf(RoutingFeature)
+
+        runGenerationTestBlocking(info, features) {
+            generate(info, features).writeToFolder(testProjectRoot)
+
+            testProjectRoot["src/resourcetest.kt"].writeText("""
+                package io.ktor.resourcetest
+
+                object ResourceTest {
+                    @kotlin.jvm.JvmStatic fun main(args: Array<String>) {
+                        check(ResourceTest::class.java.getResourceAsStream("/application.conf") != null)
+                    }
+                }
+            """.trimIndent())
+
+            fun String.updateMainClassName(newClassName: String) = this.replace(Regex("""mainClassName\s*=\s*"(.*)""""), "mainClassName = ${newClassName.quote()}")
+
+            testProjectRoot["build.gradle"].updateTextIfExists { it.updateMainClassName("io.ktor.resourcetest.ResourceTest") }
+            testProjectRoot["build.gradle.kts"].updateTextIfExists { it.updateMainClassName("io.ktor.resourcetest.ResourceTest") }
+
+            val result = org.gradle.testkit.runner.GradleRunner.create()
+                .withProjectDir(testProjectRoot)
+                .withGradleVersion(if (projectType == ProjectType.GradleKotlinDsl) GRADLE_VERSION_DSL else GRADLE_VERSION)
+                .withArguments("run")
                 .forwardOutput()
                 .build()
         }
@@ -176,6 +216,7 @@ class IntegrationTests {
                 callback()
             } catch (e: Throwable) {
                 val folder = File(System.getProperty("java.io.tmpdir") + "/swagger-project")
+                folder.deleteRecursively()
                 println("Writing problematic project to '$folder'")
                 try {
                     generate(info, features).writeToFolder(folder)
