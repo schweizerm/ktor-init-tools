@@ -30,7 +30,9 @@ object BuildFiles : BuildInfoBlock() {
 
         addMavenRepository(Repos.local)
         addMavenRepository(Repos.jcenter)
-        addMavenRepository(Repos.ktor)
+        if (info.ktorVersion < Versions.V100) {
+            addMavenRepository(Repos.ktor)
+        }
         addCompileDependency(MvnArtifact("org.jetbrains.kotlin:kotlin-stdlib-jdk8:\$kotlin_version"))
 
         addCompileDependency(MvnArtifact("io.ktor:ktor-server-${info.ktorEngine.id}:\$ktor_version"))
@@ -39,7 +41,7 @@ object BuildFiles : BuildInfoBlock() {
     }
 }
 
-internal fun BlockBuilder.getAllReposToInclude(info: BuildInfo) = this.reposToInclude + info.ktorVer.extraRepos.toSet()
+internal fun BlockBuilder.getAllReposToInclude(info: BuildInfo) = this.reposToInclude + info.ktorVersion.extraRepos.toSet()
 
 internal val BlockBuilder.reposToInclude: LinkedHashSet<String> by Extra.PropertyThis { LinkedHashSet<String>() }
 internal val BlockBuilder.compileDependencies: LinkedHashSet<MvnArtifact> by Extra.PropertyThis { LinkedHashSet<MvnArtifact>() }
