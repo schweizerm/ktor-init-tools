@@ -136,20 +136,26 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                         +"this.client = actualHttpClient.config " {
                             +"install(JsonFeature)" {
                                 +"serializer = KotlinSerializer().apply" {
-                                    val allModels = model.routes.values.map { it.methodsList }.flatten().distinctBy { it.responseType.toKotlinType() }
+                                    val allModels = model.routes.values
+                                        .map { it.methodsList }
+                                        .flatten()
+                                        .asSequence()
+                                        .filterNot { isListType(it.responseType.toKotlinType()) }
+                                        .distinctBy { it.responseType.toKotlinType() }
+                                        .toList()
                                     allModels.forEach {
                                         +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.serializer())"
                                     }
                                     +"setMapper(Date::class, object : KSerializer<Date>" {
-                                            +"override val descriptor: SerialDescriptor = StringDescriptor"
-                                            +"override fun serialize(output: Encoder, obj: Date) = output.encodeString(obj)"
-                                            +"override fun deserialize(input: Decoder): Date = input.decodeString()"
-                                        }
+                                        +"override val descriptor: SerialDescriptor = StringDescriptor"
+                                        +"override fun serialize(output: Encoder, obj: Date) = output.encodeString(obj)"
+                                        +"override fun deserialize(input: Decoder): Date = input.decodeString()"
+                                    }
                                     +")"
-                                        /*for (method in route.methodsList) {
-                                            val responseType = method.responseType.toKotlinType()
-                                        }
-                                    }*/
+                                    /*for (method in route.methodsList) {
+                                        val responseType = method.responseType.toKotlinType()
+                                    }
+                                }*/
                                 }
                             }
                         }
@@ -157,7 +163,12 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
 
                     for (route in model.routes.values) {
                         for (method in route.methodsList) {
-                            val responseType = method.responseType.toKotlinType()
+                            var responseType = method.responseType.toKotlinType()
+                            val resultType = responseType
+                            val isListType = isListType(responseType)
+                            if (isListType) {
+                                responseType = "String"
+                            }
                             SEPARATOR {
                                 doc(
                                     title = "",
@@ -174,7 +185,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         }
                                         +"${param.name}: ${param.schema.toKotlinType()}$default, // ${param.inside}"
                                     }
-                                    +"callback: (result: $responseType?, error: Throwable?) -> Unit"
+                                    +"callback: (result: $resultType?, error: Throwable?) -> Unit"
                                 }
                                 +") " {
                                     val replacedPath = method.path.replace(Regex("\\{(\\w+)\\}")) {
@@ -202,7 +213,12 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                 }
                                             }
                                         }
-                                        +"callback(result, null)"
+                                        if (isListType) {
+                                            +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
+                                            +"callback(listResult, null)"
+                                        } else {
+                                            +"callback(result, null)"
+                                        }
                                     }
                                     + ")"
                                 }
@@ -231,4 +247,14 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
         }
     }
 
+    private fun isListType(type: String): Boolean {
+        return type.startsWith("List<")
+    }
+
+    /**
+     * Would return MyClass for List<MyClass>
+     */
+    private fun getListType(type: String): String {
+        return Regex("List<(.+)>").find(type)?.groupValues?.get(1) ?: "ERROR"
+    }
 }
