@@ -51,6 +51,7 @@ open class SwaggerGeneratorBase {
         for (def in model.definitions.values) {
             SEPARATOR {
                 // @TODO: Consider using object instead?
+                +"@Serializable"
                 val classKeywords = if (def.props.isNotEmpty()) "data class" else "class"
                 if (def.synthetic) {
                     +"// Synthetic class name"
@@ -60,7 +61,8 @@ open class SwaggerGeneratorBase {
                     val props = def.props.values
                     for ((index, prop) in props.withIndex()) {
                         val comma = if (index >= props.size - 1) "" else ","
-                        +"val ${prop.name}: ${prop.type.toKotlinType()}$comma"
+                        val questionmark = if (prop.required) "" else "? = null"
+                        +"val ${prop.name}: ${prop.type.toKotlinType()}$questionmark$comma"
                     }
                 }
                 val propsWithRules = def.propsList.filter { it.type.rule != null }
@@ -69,7 +71,8 @@ open class SwaggerGeneratorBase {
                     indent {
                         +"init" {
                             for (prop in propsWithRules) {
-                                +"${prop.name}.verifyParam(${prop.name.quote()}) { ${prop.toRuleString("it")} }"
+                                val questionmark = if (prop.required) "" else "?"
+                                +"${prop.name}$questionmark.verifyParam(${prop.name.quote()}) { ${prop.toRuleString("it")} }"
                             }
                         }
                     }
