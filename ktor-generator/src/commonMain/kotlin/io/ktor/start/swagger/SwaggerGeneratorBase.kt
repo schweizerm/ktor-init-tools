@@ -65,21 +65,41 @@ open class SwaggerGeneratorBase {
                         +"val ${prop.name}: ${prop.type.toKotlinType()}$questionmark$comma"
                     }
                 }
-                val propsWithRules = def.propsList.filter { it.type.rule != null }
-                if (propsWithRules.isNotEmpty()) {
                     +") {"
-                    indent {
-                        +"init" {
-                            for (prop in propsWithRules) {
-                                val questionmark = if (prop.required) "" else "?"
-                                +"${prop.name}$questionmark.verifyParam(${prop.name.quote()}) { ${prop.toRuleString("it")} }"
+                val propsWithRules = def.propsList.filter { it.type.rule != null }
+                    if (propsWithRules.isNotEmpty()){
+                        indent {
+                            +"init" {
+                                for (prop in propsWithRules) {
+                                    val questionmark = if (prop.required) "" else "?"
+                                    +"${prop.name}$questionmark.verifyParam(${prop.name.quote()}) { ${prop.toRuleString("it")} }"
+                                }
                             }
                         }
+                        +""
                     }
-                    +"}"
-                } else {
-                    +")"
-                }
+                    indent {
+                        +"@Serializer(forClass = ${def.name}::class"
+                        +"companion object: KSerializer<${def.name}>"
+                        indent {
+                            +"override fun serialize(output: Encoder, obj: ${def.name}) {"
+                            indent {
+                                +"val elemOutput = output.beginStructure(descriptor)"
+                                for ((index, prop) in def.props.values.withIndex()) {
+                                    val kotlineType = prop.type.toKotlinType()
+                                    val type = when (kotlineType) {
+                                        "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlineType
+                                        else -> "Serializable"
+                                    }
+                                    +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index, obj.${prop.name}"
+                                }
+                                +"elemOutput.endStructure(descriptor)"
+                            }
+                            +"}"
+                        }
+                        +"}"
+                    }
+                +"}"
             }
         }
     }

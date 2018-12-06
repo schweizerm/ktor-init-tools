@@ -178,14 +178,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                 indent {
                                     for ((pinfo, param) in method.parameters.metaIter) {
                                         val qpname = param.name.quote()
-                                        var default = if (param.required) "" else "? = "
-                                        default += if (!param.required && isListType(param.schema.toKotlinType())) {
-                                            "null"
-                                        } else {
-                                            indentStringHere {
-                                                toKotlinDefault(param.schema, param.default, typed = true)
-                                            }
-                                        }
+                                        val default = if (param.required) "" else "? = null"
                                         +"${param.name}: ${param.schema.toKotlinType()}$default, // ${param.inside}"
                                     }
                                     +"callback: (result: $responseType?, error: Throwable?) -> Unit"
