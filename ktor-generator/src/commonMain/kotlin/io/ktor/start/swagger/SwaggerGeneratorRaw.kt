@@ -140,11 +140,14 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         .map { it.methodsList }
                                         .flatten()
                                         .asSequence()
-                                        .filterNot { isListType(it.responseType.toKotlinType()) }
                                         .distinctBy { it.responseType.toKotlinType() }
                                         .toList()
                                     allModels.forEach {
-                                        +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.serializer())"
+                                        if (isListType(it.responseType.toKotlinType())){
+                                            +"registerList(${getListType(it.responseType.toKotlinType())}.serializer().list)"
+                                        } else {
+                                            +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.serializer())"
+                                        }
                                     }
                                     +"setMapper(Date::class, object : KSerializer<Date>" {
                                         +"override val descriptor: SerialDescriptor = StringDescriptor"
@@ -163,12 +166,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
 
                     for (route in model.routes.values) {
                         for (method in route.methodsList) {
-                            var responseType = method.responseType.toKotlinType()
-                            val resultType = responseType
-                            val isListType = isListType(responseType)
-                            if (isListType) {
-                                responseType = "String"
-                            }
+                            val responseType = method.responseType.toKotlinType()
                             SEPARATOR {
                                 doc(
                                     title = "",
@@ -180,12 +178,17 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                 indent {
                                     for ((pinfo, param) in method.parameters.metaIter) {
                                         val qpname = param.name.quote()
-                                        val default = if (param.required) "" else "? = " + indentStringHere {
-                                            toKotlinDefault(param.schema, param.default, typed = true)
+                                        var default = if (param.required) "" else "? = "
+                                        default += if (!param.required && isListType(param.schema.toKotlinType())) {
+                                            "null"
+                                        } else {
+                                            indentStringHere {
+                                                toKotlinDefault(param.schema, param.default, typed = true)
+                                            }
                                         }
                                         +"${param.name}: ${param.schema.toKotlinType()}$default, // ${param.inside}"
                                     }
-                                    +"callback: (result: $resultType?, error: Throwable?) -> Unit"
+                                    +"callback: (result: $responseType?, error: Throwable?) -> Unit"
                                 }
                                 +") " {
                                     val replacedPath = method.path.replace(Regex("\\{(\\w+)\\}")) {
@@ -206,19 +209,10 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                 }
                                             }
                                             if (method.parametersBody.isNotEmpty()) {
-                                                +"this.body = mutableMapOf<String, Any?>().apply" {
-                                                    for (param in method.parametersBody) {
-                                                        +"this[${param.name.quote()}] = ${param.name}"
-                                                    }
-                                                }
+                                                +"this.body = serializerKotlin.write(${method.parametersBody[0].name})"
                                             }
                                         }
-                                        if (isListType) {
-                                            +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
-                                            +"callback(listResult, null)"
-                                        } else {
-                                            +"callback(result, null)"
-                                        }
+                                        +"callback(result, null)"
                                     }
                                     + ")"
                                 }
