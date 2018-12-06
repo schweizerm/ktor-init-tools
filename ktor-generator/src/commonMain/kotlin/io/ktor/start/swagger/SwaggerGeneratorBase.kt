@@ -79,8 +79,8 @@ open class SwaggerGeneratorBase {
                         +""
                     }
                     indent {
-                        +"@Serializer(forClass = ${def.name}::class"
-                        +"companion object: KSerializer<${def.name}>"
+                        +"@Serializer(forClass = ${def.name}::class)"
+                        +"companion object: KSerializer<${def.name}> {"
                         indent {
                             +"override fun serialize(output: Encoder, obj: ${def.name}) {"
                             indent {
@@ -89,9 +89,18 @@ open class SwaggerGeneratorBase {
                                     val kotlineType = prop.type.toKotlinType()
                                     val type = when (kotlineType) {
                                         "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlineType
+                                        "Date" -> "String"
                                         else -> "Serializable"
                                     }
-                                    +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index, obj.${prop.name})"
+                                    var serializer = ""
+                                    if (type == "Serializable") {
+                                        serializer = if (isListType(kotlineType)) {
+                                            " ${getListType(kotlineType)}.serializer().list,"
+                                        } else {
+                                            " $kotlineType.serializer(),"
+                                        }
+                                    }
+                                    +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
                                 }
                                 +"elemOutput.endStructure(descriptor)"
                             }
@@ -152,5 +161,13 @@ open class SwaggerGeneratorBase {
             }
         }
         return retval
+    }
+
+    private fun isListType(type: String): Boolean {
+        return type.startsWith("List<")
+    }
+
+    private fun getListType(type: String): String {
+        return Regex("List<(.+)>").find(type)?.groupValues?.get(1) ?: "ERROR"
     }
 }
