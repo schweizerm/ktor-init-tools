@@ -91,7 +91,7 @@ open class SwaggerGeneratorBase {
                                         "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlineType
                                         else -> "Serializable"
                                     }
-                                    +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index, obj.${prop.name}"
+                                    +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index, obj.${prop.name})"
                                 }
                                 +"elemOutput.endStructure(descriptor)"
                             }
