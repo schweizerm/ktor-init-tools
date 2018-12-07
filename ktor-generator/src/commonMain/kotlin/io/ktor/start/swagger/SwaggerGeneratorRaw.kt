@@ -208,10 +208,12 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                 +"this.body = serializerKotlin.write(${method.parametersBody[0].name})"
                                             }
                                         }
+                                        if (isListType) {
+                                            +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
+                                        }
                                         +"GlobalScope.launch(mainDispatcher) {"
                                         indent {
                                             if (isListType) {
-                                                +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
                                                 +"callback(listResult, null)"
                                             } else {
                                                 +"callback(result, null)"
