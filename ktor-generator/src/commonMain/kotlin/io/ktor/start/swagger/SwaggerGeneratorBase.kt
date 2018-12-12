@@ -119,16 +119,16 @@ open class SwaggerGeneratorBase {
                                                 }
                                             }
                                             else {
-                                                +"if (tree.getObjectOrNull(\"${prop.name}\") != null)"
                                                 if (isListType(kotlinType)) {
                                                     if (getDecodeType(getListType(kotlinType)) == "Serializable") {
-                                                        +"tree.getArray(\"${prop.name}\").map { ${getListType(kotlinType)}.fromJson(it.toString()) } else null$comma"
+                                                        +"tree.getArrayOrNull(\"${prop.name}\")?.map { ${getListType(kotlinType)}.fromJson(it.toString()) }$comma"
                                                     }
                                                     else {
-                                                        +"tree.getArray(\"${prop.name}\").map { it.${getDecodeType(getListType(kotlinType))} } else null$comma"
+                                                        +"tree.getArrayOrNull(\"${prop.name}\")?.map { it.${getDecodeType(getListType(kotlinType))} }$comma"
                                                     }
                                                 }
                                                 else {
+                                                    +"if (tree.getObjectOrNull(\"${prop.name}\") != null)"
                                                     +"${kotlinType}.fromJson(tree.getObject(\"${prop.name}\").toString()) else null$comma"
                                                 }
                                             }
