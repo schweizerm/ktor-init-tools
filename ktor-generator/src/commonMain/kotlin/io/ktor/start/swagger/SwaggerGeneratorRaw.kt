@@ -144,9 +144,9 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         .toList()
                                     allModels.forEach {
                                         if (isListType(it.responseType.toKotlinType())){
-                                            +"registerList(${getListType(it.responseType.toKotlinType())}.serializer().list)"
+                                            +"registerList(${getListType(it.responseType.toKotlinType())}.Companion.list)"
                                         } else {
-                                            +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.serializer())"
+                                            +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.Companion)"
                                         }
                                     }
                                     +"setMapper(Date::class, object : KSerializer<Date>" {
@@ -209,7 +209,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                             }
                                         }
                                         if (isListType) {
-                                            +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
+                                            +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.Companion.list, result)"
                                         }
                                         +"GlobalScope.launch(mainDispatcher) {"
                                         indent {

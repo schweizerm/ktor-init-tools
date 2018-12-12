@@ -79,7 +79,7 @@ open class SwaggerGeneratorBase {
                         +""
                     }
 
-                    +"fun toJson() = JSON.nonstrict.stringify(serializer(), this)"
+                    +"fun toJson() = JSON.nonstrict.stringify(Companion, this)"
                     +""
 
                     indent {
@@ -87,22 +87,58 @@ open class SwaggerGeneratorBase {
                         indent {
                             +"override val descriptor: SerialDescriptor"
                             indent {
-                                +"get() = StringDescriptor.withName(\"${def.name}\")"
+                                +"get() = serializer().descriptor"
                             }
                         }
                         +""
                         indent {
                             +"override fun deserialize(input: Decoder): ${def.name} {"
                             indent{
-                                +"val struct = input.beginStructure(descriptor)"
+                                +"val jsonReader = input as? JSON.JsonInput ?: throw SerializationException(\"This class can be loaded only by JSON\")"
+                                +"val tree = jsonReader.readAsTree() as? JsonObject ?: throw SerializationException(\"Expected JSON object\")"
+
                                 +"return ${def.name}("
                                 indent{
                                     for ((index, prop) in def.props.values.withIndex()) {
                                         val kotlinType = prop.type.toKotlinType()
-                                        val type = getEnDeCodeType(kotlinType)
+                                        val type = getDecodeType(kotlinType)
                                         val serializer = if (type == "Serializable") ", ${getSerializerByType(kotlinType)}" else ""
                                         val comma = if (index == def.props.values.size - 1) "" else ","
-                                        +"struct.decode${type}Element(descriptor, $index$serializer)$comma // ${prop.name}"
+                                        if (type == "Serializable") {
+                                            if (prop.required) {
+                                                if (isListType(kotlinType)) {
+                                                    if (getDecodeType(getListType(kotlinType)) == "Serializable") {
+                                                        +"tree.getArray(\"${prop.name}\").map { ${getListType(kotlinType)}.fromJson(it.toString()) }$comma"
+                                                    }
+                                                    else {
+                                                        +"tree.getArray(\"${prop.name}\").map { it.${getDecodeType(getListType(kotlinType))} }$comma"
+                                                    }
+                                                }
+                                                else {
+                                                    +"${kotlinType}.fromJson(tree.getObject(\"${prop.name}\").toString())$comma"
+                                                }
+                                            }
+                                            else {
+                                                +"if (tree.getObjectOrNull(\"${prop.name}\") != null)"
+                                                if (isListType(kotlinType)) {
+                                                    if (getDecodeType(getListType(kotlinType)) == "Serializable") {
+                                                        +"tree.getArray(\"${prop.name}\").map { ${getListType(kotlinType)}.fromJson(it.toString()) } else null$comma"
+                                                    }
+                                                    else {
+                                                        +"tree.getArray(\"${prop.name}\").map { it.${getDecodeType(getListType(kotlinType))} } else null$comma"
+                                                    }
+                                                }
+                                                else {
+                                                    +"${kotlinType}.fromJson(tree.getObject(\"${prop.name}\").toString()) else null$comma"
+                                                }
+                                            }
+                                        }
+                                        else {
+                                            if (!prop.required)
+                                                +"tree.getPrimitiveOrNull(\"${prop.name}\")?.${type}OrNull$comma"
+                                            else
+                                                +"tree.getPrimitive(\"${prop.name}\").$type$comma"
+                                        }
                                     }
                                 }
                                 +")"
@@ -124,9 +160,9 @@ open class SwaggerGeneratorBase {
                                     var serializer = ""
                                     if (type == "Serializable") {
                                         serializer = if (isListType(kotlineType)) {
-                                            " ${getListType(kotlineType)}.serializer().list,"
+                                            " ${getListType(kotlineType)}.Companion.serializer().list,"
                                         } else {
-                                            " $kotlineType.serializer(),"
+                                            " $kotlineType.Companion,"
                                         }
                                     }
                                     if (prop.required) {
@@ -140,7 +176,7 @@ open class SwaggerGeneratorBase {
                             }
                             +"}"
                             +""
-                            +"fun fromJson(string: String) = JSON.nonstrict.parse(serializer(), string)"
+                            +"fun fromJson(string: String) = JSON.nonstrict.parse(Companion, string)"
                         }
                         +"}"
                     }
@@ -149,19 +185,27 @@ open class SwaggerGeneratorBase {
         }
     }
 
-    fun getEnDeCodeType(kotlinType: String) : String {
+    fun getEncodeType(kotlinType: String) : String {
         return when (kotlinType) {
             "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlinType
             "Date" -> "String"
             else -> "Serializable"
         }
     }
+    fun getDecodeType(kotlinType: String) : String {
+        return when (kotlinType) {
+            "String", "Char", "Date" -> "content"
+            "Boolean", "Byte", "Double", "Float", "Int", "Long", "Short", "Unit" -> kotlinType.toLowerCase()
+            else -> "Serializable"
+        }
+    }
+
 
     fun getSerializerByType(kotlinType: String) : String {
         return if (isListType(kotlinType)) {
-            "${getListType(kotlinType)}.serializer().list"
+            "${getListType(kotlinType)}.Companion.serializer().list"
         } else {
-            "$kotlinType.serializer()"
+            "$kotlinType.Companion"
         }
     }
 
