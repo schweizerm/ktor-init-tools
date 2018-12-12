@@ -199,7 +199,12 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                 +"this.url" {
                                                     +"this.parameters.apply" {
                                                         for (param in method.parametersQuery) {
-                                                            +"${param.name}?.let { this.append(${param.name.quote()}, \"\$it\") }"
+                                                            if (param.schema.toKotlinType().contains("List")) {
+                                                                +"${param.name}?.let { this.append(${param.name.quote()}, it.joinToString(\",\") }"
+                                                            }
+                                                            else {
+                                                                +"${param.name}?.let { this.append(${param.name.quote()}, \"\$it\") }"
+                                                            }
                                                         }
                                                     }
                                                 }

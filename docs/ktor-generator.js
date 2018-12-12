@@ -79,6 +79,7 @@
   var flatten = Kotlin.kotlin.collections.flatten_u0ad8z$;
   var asSequence = Kotlin.kotlin.collections.asSequence_7wnvza$;
   var distinctBy = Kotlin.kotlin.sequences.distinctBy_z5avom$;
+  var contains_0 = Kotlin.kotlin.text.contains_li3zpu$;
   var PrimitiveClasses$stringClass = Kotlin.kotlin.reflect.js.internal.PrimitiveClasses.stringClass;
   var getKClass = Kotlin.getKClass;
   var kotlin = Kotlin.kotlin;
@@ -12497,16 +12498,16 @@
                     }
                   }
                    else {
-                    $receiver.line_61zpoe$('if (tree.getObjectOrNull(' + '"' + prop_1.name + '"' + ') != null)');
                     if (this$SwaggerGeneratorBase_0.isListType_sbhvyo$_0(kotlinType)) {
                       if (equals(this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)), 'Serializable')) {
-                        $receiver.line_61zpoe$('tree.getArray(' + '"' + prop_1.name + '"' + ').map { ' + this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType) + '.fromJson(it.toString()) } else null' + comma_0);
+                        $receiver.line_61zpoe$('tree.getArrayOrNull(' + '"' + prop_1.name + '"' + ')?.map { ' + this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType) + '.fromJson(it.toString()) }' + comma_0);
                       }
                        else {
-                        $receiver.line_61zpoe$('tree.getArray(' + '"' + prop_1.name + '"' + ').map { it.' + this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)) + ' } else null' + comma_0);
+                        $receiver.line_61zpoe$('tree.getArrayOrNull(' + '"' + prop_1.name + '"' + ')?.map { it.' + this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)) + ' }' + comma_0);
                       }
                     }
                      else {
+                      $receiver.line_61zpoe$('if (tree.getObjectOrNull(' + '"' + prop_1.name + '"' + ') != null)');
                       $receiver.line_61zpoe$(kotlinType + '.fromJson(tree.getObject(' + '"' + prop_1.name + '"' + ').toString()) else null' + comma_0);
                     }
                   }
@@ -14171,7 +14172,12 @@
                   tmp$_4 = closure$method_1.parametersQuery.iterator();
                   while (tmp$_4.hasNext()) {
                     var param_0 = tmp$_4.next();
-                    $receiver.line_61zpoe$(param_0.name + '?.let { this.append(' + quote(param_0.name) + ', ' + '"' + '$' + 'it' + '"' + ') }');
+                    if (contains_0(toKotlinType(param_0.schema), 'List')) {
+                      $receiver.line_61zpoe$(param_0.name + '?.let { this.append(' + quote(param_0.name) + ', it.joinToString(' + '"' + ',' + '"' + ') }');
+                    }
+                     else {
+                      $receiver.line_61zpoe$(param_0.name + '?.let { this.append(' + quote(param_0.name) + ', ' + '"' + '$' + 'it' + '"' + ') }');
+                    }
                   }
                 }
                 finally {
