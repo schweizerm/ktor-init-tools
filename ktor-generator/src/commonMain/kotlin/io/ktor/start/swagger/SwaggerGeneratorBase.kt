@@ -78,6 +78,10 @@ open class SwaggerGeneratorBase {
                         }
                         +""
                     }
+
+                    +"fun toJson() = JSON.nonstrict.stringify(serializer(), this)"
+                    +""
+
                     indent {
                         +"@Serializer(forClass = ${def.name}::class)"
                         +"companion object: KSerializer<${def.name}> {"
@@ -100,11 +104,18 @@ open class SwaggerGeneratorBase {
                                             " $kotlineType.serializer(),"
                                         }
                                     }
-                                    +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
+                                    if (prop.required) {
+                                        +"elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
+                                    }
+                                    else {
+                                        +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
+                                    }
                                 }
                                 +"elemOutput.endStructure(descriptor)"
                             }
                             +"}"
+                            +""
+                            +"fun fromJson(string: String) = JSON.nonstrict.parse(serializer(), string)"
                         }
                         +"}"
                     }
