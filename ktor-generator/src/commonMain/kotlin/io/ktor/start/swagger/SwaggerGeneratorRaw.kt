@@ -188,14 +188,12 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                     }
                                     +"callback: (result: $resultType?, error: Throwable?) -> Unit"
                                 }
-                                +") " {
+                                +")" {
                                     val replacedPath = method.path.replace(Regex("\\{(\\w+)\\}")) {
                                         "\$" + it.groupValues[1]
                                     }
-                                    +"launchAndCatch(" {
-                                        +"callback(null, it)"
-                                    }
-                                    +"," {
+                                    +"launchAndCatch({ callback(null, it) }, {"
+                                    indent {
                                         +"val result = client.${method.method}<$responseType>(\"\$endpoint$replacedPath\")" {
                                             if (method.parametersQuery.isNotEmpty()) {
                                                 +"this.url" {
@@ -212,12 +210,18 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         }
                                         if (isListType) {
                                             +"val listResult = JSON(strictMode = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
-                                            +"callback(listResult, null)"
-                                        } else {
-                                            +"callback(result, null)"
                                         }
+                                        +"GlobalScope.launch(mainDispatcher) {"
+                                        indent {
+                                            if (isListType) {
+                                                +"callback(listResult, null)"
+                                            } else {
+                                                +"callback(result, null)"
+                                            }
+                                        }
+                                        +"}"
                                     }
-                                    + ")"
+                                    +"})"
                                 }
                             }
                         }

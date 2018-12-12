@@ -83,8 +83,33 @@ open class SwaggerGeneratorBase {
                     +""
 
                     indent {
-                        +"@Serializer(forClass = ${def.name}::class)"
                         +"companion object: KSerializer<${def.name}> {"
+                        indent {
+                            +"override val descriptor: SerialDescriptor"
+                            indent {
+                                +"get() = StringDescriptor.withName(\"${def.name}\")"
+                            }
+                        }
+                        +""
+                        indent {
+                            +"override fun deserialize(input: Decoder): ${def.name} {"
+                            indent{
+                                +"val struct = input.beginStructure(descriptor)"
+                                +"return ${def.name}("
+                                indent{
+                                    for ((index, prop) in def.props.values.withIndex()) {
+                                        val kotlinType = prop.type.toKotlinType()
+                                        val type = getEnDeCodeType(kotlinType)
+                                        val serializer = if (type == "Serializable") ", ${getSerializerByType(kotlinType)}" else ""
+                                        val comma = if (index == def.props.values.size - 1) "" else ","
+                                        +"struct.decode${type}Element(descriptor, $index$serializer)$comma // ${prop.name}"
+                                    }
+                                }
+                                +")"
+                            }
+                            +"}"
+                        }
+                        +""
                         indent {
                             +"override fun serialize(output: Encoder, obj: ${def.name}) {"
                             indent {
@@ -121,6 +146,22 @@ open class SwaggerGeneratorBase {
                     }
                 +"}"
             }
+        }
+    }
+
+    fun getEnDeCodeType(kotlinType: String) : String {
+        return when (kotlinType) {
+            "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlinType
+            "Date" -> "String"
+            else -> "Serializable"
+        }
+    }
+
+    fun getSerializerByType(kotlinType: String) : String {
+        return if (isListType(kotlinType)) {
+            "${getListType(kotlinType)}.serializer().list"
+        } else {
+            "$kotlinType.serializer()"
         }
     }
 
