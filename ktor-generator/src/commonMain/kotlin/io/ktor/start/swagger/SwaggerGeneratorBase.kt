@@ -78,6 +78,10 @@ open class SwaggerGeneratorBase {
                         }
                         +""
                     }
+
+                    +"fun toJson() = JSON.nonstrict.stringify(serializer(), this)"
+                    +""
+
                     indent {
                         +"companion object: KSerializer<${def.name}> {"
                         indent {
@@ -111,15 +115,32 @@ open class SwaggerGeneratorBase {
                             indent {
                                 +"val elemOutput = output.beginStructure(descriptor)"
                                 for ((index, prop) in def.props.values.withIndex()) {
-                                    val kotlinType = prop.type.toKotlinType()
-                                    val type = getEnDeCodeType(kotlinType)
-                                    val serializer = if (type == "Serializable") " ${getSerializerByType(kotlinType)}," else ""
-                                    val nullcheck = if (!prop.required) "if (obj.${prop.name} != null) " else ""
-                                    +"${nullcheck}elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
+                                    val kotlineType = prop.type.toKotlinType()
+                                    val type = when (kotlineType) {
+                                        "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlineType
+                                        "Date" -> "String"
+                                        else -> "Serializable"
+                                    }
+                                    var serializer = ""
+                                    if (type == "Serializable") {
+                                        serializer = if (isListType(kotlineType)) {
+                                            " ${getListType(kotlineType)}.serializer().list,"
+                                        } else {
+                                            " $kotlineType.serializer(),"
+                                        }
+                                    }
+                                    if (prop.required) {
+                                        +"elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
+                                    }
+                                    else {
+                                        +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
+                                    }
                                 }
                                 +"elemOutput.endStructure(descriptor)"
                             }
                             +"}"
+                            +""
+                            +"fun fromJson(string: String) = JSON.nonstrict.parse(serializer(), string)"
                         }
                         +"}"
                     }
