@@ -186,7 +186,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         val default = if (param.required) "" else "? = null"
                                         +"${param.name}: ${param.schema.toKotlinType()}$default, // ${param.inside}"
                                     }
-                                    +"callback: (result: $resultType?, error: Throwable?) -> Unit"
+                                    +"callback: (result: $resultType?, error: ApiException?) -> Unit"
                                 }
                                 +")" {
                                     val replacedPath = method.path.replace(Regex("\\{(\\w+)\\}")) {
