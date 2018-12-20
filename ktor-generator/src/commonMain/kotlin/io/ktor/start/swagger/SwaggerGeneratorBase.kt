@@ -62,7 +62,8 @@ open class SwaggerGeneratorBase {
                     for ((index, prop) in props.withIndex()) {
                         val comma = if (index >= props.size - 1) "" else ","
                         val questionmark = if (prop.required) "" else "? = null"
-                        +"val ${prop.name}: ${prop.type.toKotlinType()}$questionmark$comma"
+                        val optional = if (prop.required) "" else "@Optional "
+                        +"${optional}val ${prop.name}: ${prop.type.toKotlinType()}$questionmark$comma"
                     }
                 }
                     +") {"
@@ -79,133 +80,18 @@ open class SwaggerGeneratorBase {
                         +""
                     }
 
-                    +"fun toJson() = JSON.nonstrict.stringify(Companion, this)"
+                    +"fun toJson() = Json(strictMode = false, encodeDefaults = false).stringify(serializer(), this)"
                     +""
 
                     indent {
-                        +"companion object: KSerializer<${def.name}> {"
-                        indent {
-                            +"override val descriptor: SerialDescriptor"
+                        +"companion object {"
                             indent {
-                                +"get() = serializer().descriptor"
+                                +"fun fromJson(string: String) = Json(strictMode = false, encodeDefaults = false).parse(serializer(), string)"
                             }
-                        }
-                        +""
-                        indent {
-                            +"override fun deserialize(input: Decoder): ${def.name} {"
-                            indent{
-                                +"val jsonReader = input as? JSON.JsonInput ?: throw SerializationException(\"This class can be loaded only by JSON\")"
-                                +"val tree = jsonReader.readAsTree() as? JsonObject ?: throw SerializationException(\"Expected JSON object\")"
-
-                                +"return ${def.name}("
-                                indent{
-                                    for ((index, prop) in def.props.values.withIndex()) {
-                                        val kotlinType = prop.type.toKotlinType()
-                                        val type = getDecodeType(kotlinType)
-                                        val serializer = if (type == "Serializable") ", ${getSerializerByType(kotlinType)}" else ""
-                                        val comma = if (index == def.props.values.size - 1) "" else ","
-                                        if (type == "Serializable") {
-                                            if (prop.required) {
-                                                if (isListType(kotlinType)) {
-                                                    if (getDecodeType(getListType(kotlinType)) == "Serializable") {
-                                                        +"tree.getArray(\"${prop.name}\").map { ${getListType(kotlinType)}.fromJson(it.toString()) }$comma"
-                                                    }
-                                                    else {
-                                                        +"tree.getArray(\"${prop.name}\").map { it.${getDecodeType(getListType(kotlinType))} }$comma"
-                                                    }
-                                                }
-                                                else {
-                                                    +"${kotlinType}.fromJson(tree.getObject(\"${prop.name}\").toString())$comma"
-                                                }
-                                            }
-                                            else {
-                                                if (isListType(kotlinType)) {
-                                                    if (getDecodeType(getListType(kotlinType)) == "Serializable") {
-                                                        +"tree.getArrayOrNull(\"${prop.name}\")?.map { ${getListType(kotlinType)}.fromJson(it.toString()) }$comma"
-                                                    }
-                                                    else {
-                                                        +"tree.getArrayOrNull(\"${prop.name}\")?.map { it.${getDecodeType(getListType(kotlinType))} }$comma"
-                                                    }
-                                                }
-                                                else {
-                                                    +"if (tree.getObjectOrNull(\"${prop.name}\") != null)"
-                                                    +"${kotlinType}.fromJson(tree.getObject(\"${prop.name}\").toString()) else null$comma"
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            if (!prop.required)
-                                                +"tree.getPrimitiveOrNull(\"${prop.name}\")?.${type}OrNull$comma"
-                                            else
-                                                +"tree.getPrimitive(\"${prop.name}\").$type$comma"
-                                        }
-                                    }
-                                }
-                                +")"
-                            }
-                            +"}"
-                        }
-                        +""
-                        indent {
-                            +"override fun serialize(output: Encoder, obj: ${def.name}) {"
-                            indent {
-                                +"val elemOutput = output.beginStructure(descriptor)"
-                                for ((index, prop) in def.props.values.withIndex()) {
-                                    val kotlineType = prop.type.toKotlinType()
-                                    val type = when (kotlineType) {
-                                        "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlineType
-                                        "Date" -> "String"
-                                        else -> "Serializable"
-                                    }
-                                    var serializer = ""
-                                    if (type == "Serializable") {
-                                        serializer = if (isListType(kotlineType)) {
-                                            " ${getListType(kotlineType)}.Companion.serializer().list,"
-                                        } else {
-                                            " $kotlineType.Companion,"
-                                        }
-                                    }
-                                    if (prop.required) {
-                                        +"elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
-                                    }
-                                    else {
-                                        +"if (obj.${prop.name} != null) elemOutput.encode${type}Element(descriptor, $index,$serializer obj.${prop.name})"
-                                    }
-                                }
-                                +"elemOutput.endStructure(descriptor)"
-                            }
-                            +"}"
-                            +""
-                            +"fun fromJson(string: String) = JSON.nonstrict.parse(Companion, string)"
-                        }
                         +"}"
                     }
                 +"}"
             }
-        }
-    }
-
-    fun getEncodeType(kotlinType: String) : String {
-        return when (kotlinType) {
-            "Boolean", "Byte", "Char", "Double", "Float", "Int", "Long", "Short", "String", "Unit" -> kotlinType
-            "Date" -> "String"
-            else -> "Serializable"
-        }
-    }
-    fun getDecodeType(kotlinType: String) : String {
-        return when (kotlinType) {
-            "String", "Char", "Date" -> "content"
-            "Boolean", "Byte", "Double", "Float", "Int", "Long", "Short", "Unit" -> kotlinType.toLowerCase()
-            else -> "Serializable"
-        }
-    }
-
-
-    fun getSerializerByType(kotlinType: String) : String {
-        return if (isListType(kotlinType)) {
-            "${getListType(kotlinType)}.Companion.serializer().list"
-        } else {
-            "$kotlinType.Companion"
         }
     }
 
@@ -259,11 +145,4 @@ open class SwaggerGeneratorBase {
         return retval
     }
 
-    private fun isListType(type: String): Boolean {
-        return type.startsWith("List<")
-    }
-
-    private fun getListType(type: String): String {
-        return Regex("List<(.+)>").find(type)?.groupValues?.get(1) ?: "ERROR"
-    }
 }

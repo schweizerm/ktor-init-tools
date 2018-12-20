@@ -12385,7 +12385,7 @@
     }
     return $receiver_0;
   };
-  function SwaggerGeneratorBase$swaggerDtos$lambda(closure$def, this$SwaggerGeneratorBase) {
+  function SwaggerGeneratorBase$swaggerDtos$lambda(closure$def) {
     return function ($receiver) {
       $receiver.line_61zpoe$('@Serializable');
       var classKeywords = !closure$def.props.isEmpty() ? 'data class' : 'class';
@@ -12401,7 +12401,8 @@
           var prop = tmp$.next();
           var comma = index >= (props.size - 1 | 0) ? '' : ',';
           var questionmark = prop.required ? '' : '? = null';
-          $receiver.line_61zpoe$('val ' + prop.name + ': ' + toKotlinType(prop.type) + questionmark + comma);
+          var optional = prop.required ? '' : '@Optional ';
+          $receiver.line_61zpoe$(optional + 'val ' + prop.name + ': ' + toKotlinType(prop.type) + questionmark + comma);
         }
       }
       finally {
@@ -12444,154 +12445,14 @@
         }
         $receiver.line_61zpoe$('');
       }
-      $receiver.line_61zpoe$('fun toJson() = JSON.nonstrict.stringify(Companion, this)');
+      $receiver.line_61zpoe$('fun toJson() = Json(strictMode = false, encodeDefaults = false).stringify(serializer(), this)');
       $receiver.line_61zpoe$('');
       $receiver._indent();
       try {
-        var closure$def_0 = closure$def;
-        var this$SwaggerGeneratorBase_0 = this$SwaggerGeneratorBase;
-        $receiver.line_61zpoe$('companion object: KSerializer<' + closure$def_0.name + '> {');
+        $receiver.line_61zpoe$('companion object {');
         $receiver._indent();
         try {
-          $receiver.line_61zpoe$('override val descriptor: SerialDescriptor');
-          $receiver._indent();
-          try {
-            $receiver.line_61zpoe$('get() = serializer().descriptor');
-          }
-          finally {
-            $receiver._unindent();
-          }
-        }
-        finally {
-          $receiver._unindent();
-        }
-        $receiver.line_61zpoe$('');
-        $receiver._indent();
-        try {
-          $receiver.line_61zpoe$('override fun deserialize(input: Decoder): ' + closure$def_0.name + ' {');
-          $receiver._indent();
-          try {
-            $receiver.line_61zpoe$('val jsonReader = input as? JSON.JsonInput ?: throw SerializationException("This class can be loaded only by JSON")');
-            $receiver.line_61zpoe$('val tree = jsonReader.readAsTree() as? JsonObject ?: throw SerializationException("Expected JSON object")');
-            $receiver.line_61zpoe$('return ' + closure$def_0.name + '(');
-            $receiver._indent();
-            try {
-              var index_0 = 0;
-              for (var tmp$_2 = closure$def_0.props.values.iterator(); tmp$_2.hasNext(); ++index_0) {
-                var prop_1 = tmp$_2.next();
-                var kotlinType = toKotlinType(prop_1.type);
-                var type = this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(kotlinType);
-                var serializer = equals(type, 'Serializable') ? ', ' + this$SwaggerGeneratorBase_0.getSerializerByType_61zpoe$(kotlinType) : '';
-                var comma_0 = index_0 === (closure$def_0.props.values.size - 1 | 0) ? '' : ',';
-                if (equals(type, 'Serializable')) {
-                  if (prop_1.required) {
-                    if (this$SwaggerGeneratorBase_0.isListType_sbhvyo$_0(kotlinType)) {
-                      if (equals(this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)), 'Serializable')) {
-                        $receiver.line_61zpoe$('tree.getArray(' + '"' + prop_1.name + '"' + ').map { ' + this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType) + '.fromJson(it.toString()) }' + comma_0);
-                      }
-                       else {
-                        $receiver.line_61zpoe$('tree.getArray(' + '"' + prop_1.name + '"' + ').map { it.' + this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)) + ' }' + comma_0);
-                      }
-                    }
-                     else {
-                      $receiver.line_61zpoe$(kotlinType + '.fromJson(tree.getObject(' + '"' + prop_1.name + '"' + ').toString())' + comma_0);
-                    }
-                  }
-                   else {
-                    if (this$SwaggerGeneratorBase_0.isListType_sbhvyo$_0(kotlinType)) {
-                      if (equals(this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)), 'Serializable')) {
-                        $receiver.line_61zpoe$('tree.getArrayOrNull(' + '"' + prop_1.name + '"' + ')?.map { ' + this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType) + '.fromJson(it.toString()) }' + comma_0);
-                      }
-                       else {
-                        $receiver.line_61zpoe$('tree.getArrayOrNull(' + '"' + prop_1.name + '"' + ')?.map { it.' + this$SwaggerGeneratorBase_0.getDecodeType_61zpoe$(this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlinType)) + ' }' + comma_0);
-                      }
-                    }
-                     else {
-                      $receiver.line_61zpoe$('if (tree.getObjectOrNull(' + '"' + prop_1.name + '"' + ') != null)');
-                      $receiver.line_61zpoe$(kotlinType + '.fromJson(tree.getObject(' + '"' + prop_1.name + '"' + ').toString()) else null' + comma_0);
-                    }
-                  }
-                }
-                 else {
-                  if (!prop_1.required) {
-                    $receiver.line_61zpoe$('tree.getPrimitiveOrNull(' + '"' + prop_1.name + '"' + ')?.' + type + 'OrNull' + comma_0);
-                  }
-                   else {
-                    $receiver.line_61zpoe$('tree.getPrimitive(' + '"' + prop_1.name + '"' + ').' + type + comma_0);
-                  }
-                }
-              }
-            }
-            finally {
-              $receiver._unindent();
-            }
-            $receiver.line_61zpoe$(')');
-          }
-          finally {
-            $receiver._unindent();
-          }
-          $receiver.line_61zpoe$('}');
-        }
-        finally {
-          $receiver._unindent();
-        }
-        $receiver.line_61zpoe$('');
-        $receiver._indent();
-        try {
-          $receiver.line_61zpoe$('override fun serialize(output: Encoder, obj: ' + closure$def_0.name + ') {');
-          $receiver._indent();
-          try {
-            $receiver.line_61zpoe$('val elemOutput = output.beginStructure(descriptor)');
-            var index_1 = 0;
-            for (var tmp$_3 = closure$def_0.props.values.iterator(); tmp$_3.hasNext(); ++index_1) {
-              var prop_2 = tmp$_3.next();
-              var tmp$_4, tmp$_5;
-              var kotlineType = toKotlinType(prop_2.type);
-              switch (kotlineType) {
-                case 'Boolean':
-                case 'Byte':
-                case 'Char':
-                case 'Double':
-                case 'Float':
-                case 'Int':
-                case 'Long':
-                case 'Short':
-                case 'String':
-                case 'Unit':
-                  tmp$_4 = kotlineType;
-                  break;
-                case 'Date':
-                  tmp$_4 = 'String';
-                  break;
-                default:tmp$_4 = 'Serializable';
-                  break;
-              }
-              var type_0 = tmp$_4;
-              var serializer_0 = '';
-              if (equals(type_0, 'Serializable')) {
-                if (this$SwaggerGeneratorBase_0.isListType_sbhvyo$_0(kotlineType)) {
-                  tmp$_5 = ' ' + this$SwaggerGeneratorBase_0.getListType_mkpyfc$_0(kotlineType) + '.Companion.serializer().list,';
-                }
-                 else {
-                  tmp$_5 = ' ' + kotlineType + '.Companion,';
-                }
-                serializer_0 = tmp$_5;
-              }
-              if (prop_2.required) {
-                $receiver.line_61zpoe$('elemOutput.encode' + type_0 + 'Element(descriptor, ' + index_1 + ',' + serializer_0 + ' obj.' + prop_2.name + ')');
-              }
-               else {
-                $receiver.line_61zpoe$('if (obj.' + prop_2.name + ' != null) elemOutput.encode' + type_0 + 'Element(descriptor, ' + index_1 + ',' + serializer_0 + ' obj.' + prop_2.name + ')');
-              }
-            }
-            $receiver.line_61zpoe$('elemOutput.endStructure(descriptor)');
-          }
-          finally {
-            $receiver._unindent();
-          }
-          $receiver.line_61zpoe$('}');
-          $receiver.line_61zpoe$('');
-          $receiver.line_61zpoe$('fun fromJson(string: String) = JSON.nonstrict.parse(Companion, string)');
+          $receiver.line_61zpoe$('fun fromJson(string: String) = Json(strictMode = false, encodeDefaults = false).parse(serializer(), string)');
         }
         finally {
           $receiver._unindent();
@@ -12610,64 +12471,8 @@
     tmp$ = model.definitions.values.iterator();
     while (tmp$.hasNext()) {
       var def = tmp$.next();
-      SEPARATOR($receiver, SwaggerGeneratorBase$swaggerDtos$lambda(def, this));
+      SEPARATOR($receiver, SwaggerGeneratorBase$swaggerDtos$lambda(def));
     }
-  };
-  SwaggerGeneratorBase.prototype.getEncodeType_61zpoe$ = function (kotlinType) {
-    var tmp$;
-    switch (kotlinType) {
-      case 'Boolean':
-      case 'Byte':
-      case 'Char':
-      case 'Double':
-      case 'Float':
-      case 'Int':
-      case 'Long':
-      case 'Short':
-      case 'String':
-      case 'Unit':
-        tmp$ = kotlinType;
-        break;
-      case 'Date':
-        tmp$ = 'String';
-        break;
-      default:tmp$ = 'Serializable';
-        break;
-    }
-    return tmp$;
-  };
-  SwaggerGeneratorBase.prototype.getDecodeType_61zpoe$ = function (kotlinType) {
-    var tmp$;
-    switch (kotlinType) {
-      case 'String':
-      case 'Char':
-      case 'Date':
-        tmp$ = 'content';
-        break;
-      case 'Boolean':
-      case 'Byte':
-      case 'Double':
-      case 'Float':
-      case 'Int':
-      case 'Long':
-      case 'Short':
-      case 'Unit':
-        tmp$ = kotlinType.toLowerCase();
-        break;
-      default:tmp$ = 'Serializable';
-        break;
-    }
-    return tmp$;
-  };
-  SwaggerGeneratorBase.prototype.getSerializerByType_61zpoe$ = function (kotlinType) {
-    var tmp$;
-    if (this.isListType_sbhvyo$_0(kotlinType)) {
-      tmp$ = this.getListType_mkpyfc$_0(kotlinType) + '.Companion.serializer().list';
-    }
-     else {
-      tmp$ = kotlinType + '.Companion';
-    }
-    return tmp$;
   };
   function SwaggerGeneratorBase$routeBodyCheckParameters$lambda(closure$method) {
     return function ($receiver) {
@@ -12731,13 +12536,6 @@
     SEPARATOR($receiver, SwaggerGeneratorBase$routeBodyCheckParameters$lambda_0(method));
     SEPARATOR($receiver, SwaggerGeneratorBase$routeBodyCheckParameters$lambda_1(method, retval));
     return retval.v;
-  };
-  SwaggerGeneratorBase.prototype.isListType_sbhvyo$_0 = function (type) {
-    return startsWith(type, 'List<');
-  };
-  SwaggerGeneratorBase.prototype.getListType_mkpyfc$_0 = function (type) {
-    var tmp$, tmp$_0, tmp$_1;
-    return (tmp$_1 = (tmp$_0 = (tmp$ = Regex_init('List<(.+)>').find_905azu$(type)) != null ? tmp$.groupValues : null) != null ? tmp$_0.get_za3lpa$(1) : null) != null ? tmp$_1 : 'ERROR';
   };
   SwaggerGeneratorBase.$metadata$ = {
     kind: Kind_CLASS,
@@ -14109,7 +13907,7 @@
           var default_0 = param.required ? '' : '? = null';
           $receiver.line_61zpoe$(param.name + ': ' + toKotlinType(param.schema) + default_0 + ', // ' + param.inside);
         }
-        $receiver.line_61zpoe$('callback: (result: ' + closure$resultType_0 + '?, error: Throwable?) -> Unit');
+        $receiver.line_61zpoe$('callback: (result: ' + closure$resultType_0 + '?, error: ApiException?) -> Unit');
       }
       finally {
         $receiver._unindent();
@@ -14202,7 +14000,7 @@
           $receiver.line_61zpoe$('}' + '');
           unaryPlus_0($receiver);
           if (closure$isListType_0) {
-            $receiver.line_61zpoe$('val listResult = JSON(strictMode = false).parse(' + this$SwaggerGeneratorRaw_0.getListType_0(toKotlinType_0(closure$method_1.responseType)) + '.Companion.list, result)');
+            $receiver.line_61zpoe$('val listResult = Json(strictMode = false, encodeDefaults = false).parse(' + this$SwaggerGeneratorRaw_0.getListType_0(toKotlinType_0(closure$method_1.responseType)) + '.serializer().list, result)');
           }
           $receiver.line_61zpoe$('GlobalScope.launch(mainDispatcher) {');
           $receiver._indent();
@@ -14277,10 +14075,10 @@
                 while (tmp$_2.hasNext()) {
                   var element = tmp$_2.next();
                   if (this$SwaggerGeneratorRaw_0.isListType_0(toKotlinType_0(element.responseType))) {
-                    $receiver.line_61zpoe$('registerList(' + this$SwaggerGeneratorRaw_0.getListType_0(toKotlinType_0(element.responseType)) + '.Companion.list)');
+                    $receiver.line_61zpoe$('registerList(' + this$SwaggerGeneratorRaw_0.getListType_0(toKotlinType_0(element.responseType)) + '.serializer().list)');
                   }
                    else {
-                    $receiver.line_61zpoe$('setMapper(' + toKotlinType_0(element.responseType) + '::class, ' + toKotlinType_0(element.responseType) + '.Companion)');
+                    $receiver.line_61zpoe$('setMapper(' + toKotlinType_0(element.responseType) + '::class, ' + toKotlinType_0(element.responseType) + '.serializer())');
                   }
                 }
                 var $receiver_5 = 'setMapper(Date::class, object : KSerializer<Date>';
