@@ -52,9 +52,9 @@ open class SwaggerGeneratorBase {
             SEPARATOR {
                 // @TODO: Consider using object instead?
                 +"/**"
-                +(def.description ?: "")
+                +" * ${def.description ?: ""}"
                 def.props.values.forEach {
-                    +"@param ${it.name} ${it.description ?: ""}"
+                    +" * @param ${it.name} ${it.description ?: ""}"
                 }
                 +"*/"
                 +"@Serializable"
@@ -85,13 +85,20 @@ open class SwaggerGeneratorBase {
                         }
                         +""
                     }
-
+                    +"/**"
+                    +" * @return JSON representation of this object"
+                    +" */"
                     +"fun toJson() = Json(strictMode = false, encodeDefaults = false).stringify(serializer(), this)"
                     +""
 
                     indent {
                         +"companion object {"
                             indent {
+                                +"/**"
+                                +" * deserializes the given JSON to an object of this kind"
+                                +" * @param string JSON string"
+                                +" * @return deserialized object"
+                                +" */"
                                 +"fun fromJson(string: String) = Json(strictMode = false, encodeDefaults = false).parse(serializer(), string)"
                             }
                         +"}"
