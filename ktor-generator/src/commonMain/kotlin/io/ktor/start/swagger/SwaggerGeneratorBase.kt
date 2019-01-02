@@ -86,6 +86,7 @@ open class SwaggerGeneratorBase {
                         +""
                     }
                     +"/**"
+                    +" * serializes this object to a JSON string"
                     +" * @return JSON representation of this object"
                     +" */"
                     +"fun toJson() = Json(strictMode = false, encodeDefaults = false).stringify(serializer(), this)"
