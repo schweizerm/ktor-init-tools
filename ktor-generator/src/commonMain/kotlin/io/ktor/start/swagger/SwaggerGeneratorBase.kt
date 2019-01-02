@@ -51,6 +51,12 @@ open class SwaggerGeneratorBase {
         for (def in model.definitions.values) {
             SEPARATOR {
                 // @TODO: Consider using object instead?
+                +"/**"
+                +(def.description ?: "")
+                def.props.values.forEach {
+                    +"@param ${it.name} ${it.description ?: ""}"
+                }
+                +"*/"
                 +"@Serializable"
                 val classKeywords = if (def.props.isNotEmpty()) "data class" else "class"
                 if (def.synthetic) {

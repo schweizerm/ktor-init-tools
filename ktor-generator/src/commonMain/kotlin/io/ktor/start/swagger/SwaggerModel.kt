@@ -64,7 +64,7 @@ data class SwaggerModel(
         val enum: List<String>?
     )
 
-    class InfoGenType<T : GenType>(val type: T, val rule: JsonRule?, val default: Any?) {
+    class InfoGenType<T : GenType>(val type: T, val rule: JsonRule?, val default: Any?, val description: String? = null) {
         override fun toString(): String = if (rule != null) "$type($rule)" else "$type"
     }
 
@@ -143,12 +143,12 @@ data class SwaggerModel(
         override fun toString(): String = "DateTime"
     }
 
-    data class ArrayType(val items: InfoGenType<GenType>) : GenType {
+    data class ArrayType(val items: InfoGenType<GenType>, val description: String? = null) : GenType {
         override val ktype: KClass<*> = List::class
         override fun toString(): String = "List<$items>"
     }
 
-    data class OptionalType(val type: InfoGenType<GenType>) : GenType {
+    data class OptionalType(val type: InfoGenType<GenType>, val description: String? = null) : GenType {
         override val ktype: KClass<*> = Any::class
         override fun toString(): String = "$type?"
     }
@@ -159,7 +159,7 @@ data class SwaggerModel(
 
     //data class UnnamedObject(val type: ObjType)
 
-    data class NamedObject(val path: String, val kind: InfoGenType<ObjType>) : MapLikeGenType {
+    data class NamedObject(val path: String, val kind: InfoGenType<ObjType>, val description: String? = null) : MapLikeGenType {
     //data class NamedObject(val path: String, val def: TypeDef?) : MapLikeGenType {
         override val ktype: KClass<*> = Any::class
         val name = path.substringAfterLast('/').substringAfterLast(".")
@@ -168,7 +168,7 @@ data class SwaggerModel(
         override val fields = kind.type.fields
     }
 
-    data class ObjType(val namePath: String?, val guessPath: List<String>, val propList: List<Prop>) : MapLikeGenType {
+    data class ObjType(val namePath: String?, val guessPath: List<String>, val propList: List<Prop>, val description: String? = null) : MapLikeGenType {
         val props = propList.associateBy { it.name }
         override val fields: Map<String, InfoGenType<GenType>> = propList.map { it.name to it.type }.toMap()
         override val ktype: KClass<*> = Map::class
@@ -176,7 +176,7 @@ data class SwaggerModel(
         override fun toString(): String = "Any/*Unsupported {$fields} namePath=$namePath, guessName=$guessName, guessPath=$guessPath*/"
     }
 
-    data class Prop(val name: String, val type: InfoGenType<GenType>, val required: Boolean) {
+    data class Prop(val name: String, val type: InfoGenType<GenType>, val required: Boolean, val description: String? = null) {
         val rtype = if (required) type else OptionalType(type)
         val rule get() = type.rule
 
@@ -253,7 +253,7 @@ data class SwaggerModel(
         val parametersHeader = parameters.filter { it.inside == Inside.HEADER }
 
         val requestBodyOld = if (parametersBody.isNotEmpty())
-            listOf(TypeWithContentType(ContentType.ApplicationJson, InfoGenType(ObjType(null, listOf(), parametersBody.map { Prop(it.name, it.schema, required = true) }), null, null)))
+            listOf(TypeWithContentType(ContentType.ApplicationJson, InfoGenType(ObjType(null, listOf(), parametersBody.map { Prop(it.name, it.schema, required = true, description = it.description) }), null, null)))
         else
             listOf()
 
@@ -321,10 +321,11 @@ data class SwaggerModel(
                 val ref = def["\$ref"]
                 if (ref != null) {
                     val path = ref.str
+                    val description = def["description"]?.str
                     val referee = parseDefinitionElement(Json.followReference(def, root, path), root, path, listOf(path))
                     return if (referee.type is ObjType) {
                         @Suppress("UNCHECKED_CAST")
-                        InfoGenType(NamedObject(path, referee as InfoGenType<ObjType>), null, null)
+                        InfoGenType(NamedObject(path, referee as InfoGenType<ObjType>, description = referee.description), null, null, description = description)
                     } else {
                         referee
                     }
@@ -332,6 +333,8 @@ data class SwaggerModel(
                     val type = def["type"]
                     val format = def["format"]
                     val default = def["default"]
+                    val description = def["description"]?.str
+                    val example = def["example"]?.str
                     val rule = JsonRule.parseOrNull(def)
                     val ptype = when (type) {
                         // Primitive
@@ -358,7 +361,8 @@ data class SwaggerModel(
                         // Composed Types
                         "array" -> {
                             val items = def["items"]
-                            ArrayType(parseDefinitionElement(items, root, null, guessPath + listOf("elements")))
+                            val element = parseDefinitionElement(items, root, null, guessPath + listOf("elements"))
+                            ArrayType(element, description = element.description)
                         }
                         null, "object" -> {
                             val props = def["properties"]
@@ -366,9 +370,12 @@ data class SwaggerModel(
                             val entries =
                                 props.strEntries
                                     .map {
-                                        Prop(it.first, parseDefinitionElement(it.second, root, null, guessPath + it.first), it.first in required)
+                                        val element = parseDefinitionElement(it.second, root, null, guessPath + it.first)
+                                        Prop(it.first, element, it.first in required,
+                                            description = element.description
+                                        )
                                     }
-                            ObjType(namePath, guessPath, entries)
+                            ObjType(namePath, guessPath, entries, description = "${description ?: ""}${if (example != null) "$example" else ""}")
                         }
                         "null" -> error("null? : $def")
                         else -> {
@@ -376,7 +383,7 @@ data class SwaggerModel(
                             //PrimType(type.str, format?.str, def)
                         }
                     }
-                    InfoGenType(ptype, rule, default = default)
+                    InfoGenType(ptype, rule, default = default, description = "${description ?: ""}${if (example != null) " Example: $example" else ""}")
                 }
             }
         }
@@ -627,7 +634,7 @@ data class SwaggerModel(
         }
     }
 
-    data class TypeDef(val name: String, val props: Map<String, Prop>, val synthetic: Boolean) {
+    data class TypeDef(val name: String, val props: Map<String, Prop>, val synthetic: Boolean, val description: String? = null) {
         val propsList = props.values
     }
 }
@@ -639,14 +646,14 @@ fun SwaggerModel.constructDefinitions(): Map<String, SwaggerModel.TypeDef> {
     //for (u in res.unnamed) println("unnamed: $u")
 
     val namedDefs = res.out.map {
-        SwaggerModel.TypeDef(it.name, it.kind.type.props, synthetic = false)
+        SwaggerModel.TypeDef(it.name, it.kind.type.props, synthetic = false, description = it.description)
     }.filterNotNull().associateBy { it.name }
 
     val unnamedDefs = res.unnamed.map {
         val props = it.fields.map { (name, type) ->
-            name to SwaggerModel.Prop(name, type, true)
+            name to SwaggerModel.Prop(name, type, true, description = type.description)
         }.toMap()
-        SwaggerModel.TypeDef(it.guessName, props, synthetic = true)
+        SwaggerModel.TypeDef(it.guessName, props, synthetic = true, description = it.description)
     }.associateBy { it.name }
 
     return namedDefs + unnamedDefs
