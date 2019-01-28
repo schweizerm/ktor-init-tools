@@ -136,25 +136,29 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                         +"this.client = actualHttpClient.config " {
                             +"install(JsonFeature)" {
                                 +"serializer = KotlinSerializer().apply" {
-                                    val allModels = model.routes.values
+                                    val parameterTypes = model.routesList
                                         .map { it.methodsList }
                                         .flatten()
                                         .asSequence()
-                                        .distinctBy { it.responseType.toKotlinType() }
-                                        .toList()
-                                    allModels.forEach {
-                                        if (isListType(it.responseType.toKotlinType())){
-                                            +"registerList(${getListType(it.responseType.toKotlinType())}.serializer().list)"
-                                        } else {
-                                            +"setMapper(${it.responseType.toKotlinType()}::class, ${it.responseType.toKotlinType()}.serializer())"
+                                        .map { it.parametersBody }
+                                        .flatten()
+                                        .map { it.schema.type.toKotlinType() }
+
+                                    model.routesList
+                                        .map { it.methodsList }
+                                        .flatten()
+                                        .asSequence()
+                                        .map { it.responseType.toKotlinType() }
+                                        .plus(parameterTypes)
+                                        .distinct()
+                                        .forEach {
+                                            if (isListType(it)) {
+                                                +"registerList<${getListType(it)}>()"
+                                            } else {
+                                                +"register<${it}>()"
+                                            }
                                         }
-                                    }
-                                    +"setMapper(Date::class, object : KSerializer<Date>" {
-                                        +"override val descriptor: SerialDescriptor = StringDescriptor"
-                                        +"override fun serialize(output: Encoder, obj: Date) = output.encodeString(obj)"
-                                        +"override fun deserialize(input: Decoder): Date = input.decodeString()"
-                                    }
-                                    +")"
+
                                     /*for (method in route.methodsList) {
                                         val responseType = method.responseType.toKotlinType()
                                     }

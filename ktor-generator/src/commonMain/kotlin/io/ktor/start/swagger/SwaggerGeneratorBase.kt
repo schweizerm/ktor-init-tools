@@ -89,7 +89,7 @@ open class SwaggerGeneratorBase {
                     +" * serializes this object to a JSON string"
                     +" * @return JSON representation of this object"
                     +" */"
-                    +"fun toJson() = Json(strictMode = false, encodeDefaults = false).stringify(serializer(), this)"
+                    +"fun toJson() = json.stringify(serializer(), this)"
                     +""
 
                     indent {
@@ -100,7 +100,7 @@ open class SwaggerGeneratorBase {
                                 +" * @param string JSON string"
                                 +" * @return deserialized object"
                                 +" */"
-                                +"fun fromJson(string: String) = Json(strictMode = false, encodeDefaults = false).parse(serializer(), string)"
+                                +"fun fromJson(string: String) = json.parse(serializer(), string)"
                             }
                         +"}"
                     }
