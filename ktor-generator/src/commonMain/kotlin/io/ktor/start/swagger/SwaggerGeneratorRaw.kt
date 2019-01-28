@@ -196,7 +196,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                     val replacedPath = method.path.replace(Regex("\\{(\\w+)\\}")) {
                                         "\$" + it.groupValues[1]
                                     }
-                                    +"launchAndCatch({ callback(null, it) }, {"
+                                    +"launchAndCatch(localDefaultDispatcher, localMainDispatcher, { callback(null, it) }, {"
                                     indent {
                                         +"val result = client.${method.method}<$responseType>(\"\$endpoint$replacedPath\")" {
                                             if (method.parametersQuery.isNotEmpty()) {
@@ -204,7 +204,7 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                     +"this.parameters.apply" {
                                                         for (param in method.parametersQuery) {
                                                             if (param.schema.toKotlinType().contains("List")) {
-                                                                +"${param.name}?.let { this.append(${param.name.quote()}, it.joinToString(\",\") }"
+                                                                +"${param.name}?.let { this.append(${param.name.quote()}, it.joinToString(\",\")) }"
                                                             }
                                                             else {
                                                                 +"${param.name}?.let { this.append(${param.name.quote()}, \"\$it\") }"
@@ -218,9 +218,9 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                             }
                                         }
                                         if (isListType) {
-                                            +"val listResult = Json(strictMode = false, encodeDefaults = false).parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
+                                            +"val listResult = json.parse(${getListType(method.responseType.toKotlinType())}.serializer().list, result)"
                                         }
-                                        +"GlobalScope.launch(mainDispatcher) {"
+                                        +"localMainDispatcher.launch {"
                                         indent {
                                             if (isListType) {
                                                 +"callback(listResult, null)"

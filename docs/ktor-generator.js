@@ -14114,7 +14114,7 @@
         }
          while (false);
         var replacedPath = replace_20wsma$result;
-        $receiver.line_61zpoe$('launchAndCatch({ callback(null, it) }, {');
+        $receiver.line_61zpoe$('launchAndCatch(localDefaultDispatcher, localMainDispatcher, { callback(null, it) }, {');
         $receiver._indent();
         try {
           var $receiver_2 = 'val result = client.' + closure$method_1.method + '<' + closure$responseType_0.v + '>(' + '"' + '$' + 'endpoint' + replacedPath + '"' + ')';
@@ -14138,7 +14138,7 @@
                   while (tmp$_4.hasNext()) {
                     var param_0 = tmp$_4.next();
                     if (contains_0(toKotlinType(param_0.schema), 'List')) {
-                      $receiver.line_61zpoe$(param_0.name + '?.let { this.append(' + quote(param_0.name) + ', it.joinToString(' + '"' + ',' + '"' + ') }');
+                      $receiver.line_61zpoe$(param_0.name + '?.let { this.append(' + quote(param_0.name) + ', it.joinToString(' + '"' + ',' + '"' + ')) }');
                     }
                      else {
                       $receiver.line_61zpoe$(param_0.name + '?.let { this.append(' + quote(param_0.name) + ', ' + '"' + '$' + 'it' + '"' + ') }');
@@ -14167,9 +14167,9 @@
           $receiver.line_61zpoe$('}' + '');
           unaryPlus_0($receiver);
           if (closure$isListType_0) {
-            $receiver.line_61zpoe$('val listResult = Json(strictMode = false, encodeDefaults = false).parse(' + this$SwaggerGeneratorRaw_0.getListType_0(toKotlinType_0(closure$method_1.responseType)) + '.serializer().list, result)');
+            $receiver.line_61zpoe$('val listResult = json.parse(' + this$SwaggerGeneratorRaw_0.getListType_0(toKotlinType_0(closure$method_1.responseType)) + '.serializer().list, result)');
           }
-          $receiver.line_61zpoe$('GlobalScope.launch(mainDispatcher) {');
+          $receiver.line_61zpoe$('localMainDispatcher.launch {');
           $receiver._indent();
           try {
             if (closure$isListType_0) {
