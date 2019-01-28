@@ -153,9 +153,9 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         .distinct()
                                         .forEach {
                                             if (isListType(it)) {
-                                                +"registerList<${getListType(it)}>()"
+                                                +"registerList(${getListType(it)}.serializer().list)"
                                             } else {
-                                                +"register<${it}>()"
+                                                +"setMapper($it::class, $it.serializer())"
                                             }
                                         }
 
