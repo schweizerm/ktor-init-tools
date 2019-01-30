@@ -80,7 +80,9 @@
   var asSequence = Kotlin.kotlin.collections.asSequence_7wnvza$;
   var flatten_0 = Kotlin.kotlin.sequences.flatten_d9bjs1$;
   var plus_3 = Kotlin.kotlin.sequences.plus_v0iwhp$;
+  var plus_4 = Kotlin.kotlin.sequences.plus_639hpx$;
   var distinct = Kotlin.kotlin.sequences.distinct_veqyi0$;
+  var sorted = Kotlin.kotlin.sequences.sorted_gtzq52$;
   var contains_0 = Kotlin.kotlin.text.contains_li3zpu$;
   var PrimitiveClasses$stringClass = Kotlin.kotlin.reflect.js.internal.PrimitiveClasses.stringClass;
   var getKClass = Kotlin.getKClass;
@@ -14237,23 +14239,32 @@
                   destination.add_11rb$(item.methodsList);
                 }
                 var parameterTypes = map(flatten_0(map(asSequence(flatten(destination)), SwaggerGeneratorRaw$fileSwaggerFrontendHandler$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda)), SwaggerGeneratorRaw$fileSwaggerFrontendHandler$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_0);
-                var $receiver_5 = closure$model_0.routesList;
+                var $receiver_5 = closure$model_0.definitions.values;
                 var destination_0 = ArrayList_init_0(collectionSizeOrDefault($receiver_5, 10));
                 var tmp$_2;
                 tmp$_2 = $receiver_5.iterator();
                 while (tmp$_2.hasNext()) {
                   var item_0 = tmp$_2.next();
-                  destination_0.add_11rb$(item_0.methodsList);
+                  destination_0.add_11rb$(item_0.name);
                 }
+                var models = destination_0;
+                var $receiver_6 = closure$model_0.routesList;
+                var destination_1 = ArrayList_init_0(collectionSizeOrDefault($receiver_6, 10));
                 var tmp$_3;
-                tmp$_3 = distinct(plus_3(map(asSequence(flatten(destination_0)), SwaggerGeneratorRaw$fileSwaggerFrontendHandler$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1), parameterTypes)).iterator();
+                tmp$_3 = $receiver_6.iterator();
                 while (tmp$_3.hasNext()) {
-                  var element = tmp$_3.next();
+                  var item_1 = tmp$_3.next();
+                  destination_1.add_11rb$(item_1.methodsList);
+                }
+                var tmp$_4;
+                tmp$_4 = sorted(distinct(plus_4(plus_3(map(asSequence(flatten(destination_1)), SwaggerGeneratorRaw$fileSwaggerFrontendHandler$lambda$lambda$lambda$lambda$lambda$lambda$lambda$lambda_1), parameterTypes), models))).iterator();
+                while (tmp$_4.hasNext()) {
+                  var element = tmp$_4.next();
                   if (this$SwaggerGeneratorRaw_0.isListType_0(element)) {
-                    $receiver.line_61zpoe$('registerList<' + this$SwaggerGeneratorRaw_0.getListType_0(element) + '>()');
+                    $receiver.line_61zpoe$('registerList(' + this$SwaggerGeneratorRaw_0.getListType_0(element) + '.serializer().list)');
                   }
                    else {
-                    $receiver.line_61zpoe$('register<' + element + '>()');
+                    $receiver.line_61zpoe$('setMapper(' + element + '::class, ' + element + '.serializer())');
                   }
                 }
               }

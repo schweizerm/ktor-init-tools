@@ -144,13 +144,18 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                         .flatten()
                                         .map { it.schema.type.toKotlinType() }
 
+                                    val models = model.definitions.values
+                                        .map { it.name }
+
                                     model.routesList
                                         .map { it.methodsList }
                                         .flatten()
                                         .asSequence()
                                         .map { it.responseType.toKotlinType() }
                                         .plus(parameterTypes)
+                                        .plus(models)
                                         .distinct()
+                                        .sorted()
                                         .forEach {
                                             if (isListType(it)) {
                                                 +"registerList(${getListType(it)}.serializer().list)"
