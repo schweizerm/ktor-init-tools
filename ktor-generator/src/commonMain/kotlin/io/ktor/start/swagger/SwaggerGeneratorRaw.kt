@@ -203,7 +203,8 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                                 +"${param.name}?.let { this.append(${param.name.quote()}, it.joinToString(\",\") }"
                                                             }
                                                             else {
-                                                                +"${param.name}?.let { this.append(${param.name.quote()}, \"\$it\") }"
+                                                                val appendValue = if (param.schema.toKotlinType() == "String") "it" else "\"\$it\""
+                                                                +"${param.name}?.let { this.append(${param.name.quote()}, $appendValue) }"
                                                             }
                                                         }
                                                     }
