@@ -199,12 +199,13 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                 +"this.url" {
                                                     +"this.parameters.apply" {
                                                         for (param in method.parametersQuery) {
+                                                            val nullable = if (param.required) "" else "?"
                                                             if (param.schema.toKotlinType().contains("List")) {
-                                                                +"${param.name}?.let { this.append(${param.name.quote()}, it.joinToString(\",\") }"
+                                                                +"${param.name}$nullable.let { this.append(${param.name.quote()}, it.joinToString(\",\") }"
                                                             }
                                                             else {
                                                                 val appendValue = if (param.schema.toKotlinType() == "String") "it" else "\"\$it\""
-                                                                +"${param.name}?.let { this.append(${param.name.quote()}, $appendValue) }"
+                                                                +"${param.name}$nullable.let { this.append(${param.name.quote()}, $appendValue) }"
                                                             }
                                                         }
                                                     }
