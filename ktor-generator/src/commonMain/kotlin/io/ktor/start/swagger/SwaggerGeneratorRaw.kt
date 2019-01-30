@@ -209,12 +209,17 @@ object SwaggerGeneratorRaw : SwaggerGeneratorBase() {
                                                     +"this.parameters.apply" {
                                                         for (param in method.parametersQuery) {
                                                             val nullable = if (param.required) "" else "?"
-                                                            if (param.schema.toKotlinType().contains("List")) {
-                                                                +"${param.name}$nullable.let { this.append(${param.name.quote()}, it.joinToString(\",\")) }"
-                                                            }
-                                                            else {
+                                                            val appendText = if (param.schema.toKotlinType().contains("List")) {
+                                                                "this.append(${param.name.quote()}, it.joinToString(\",\"))"
+                                                            } else {
                                                                 val appendValue = if (param.schema.toKotlinType() == "String") "it" else "\"\$it\""
-                                                                +"${param.name}$nullable.let { this.append(${param.name.quote()}, $appendValue) }"
+                                                                "this.append(${param.name.quote()}, $appendValue)"
+                                                            }
+
+                                                            if (param.required) {
+                                                                +appendText
+                                                            } else {
+                                                                +"${param.name}$nullable.let { $appendText }"
                                                             }
                                                         }
                                                     }
